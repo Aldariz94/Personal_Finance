@@ -1,7 +1,13 @@
 name: Construir .exe de Windows
 
+# En cada push a la rama, lee el archivo VERSION: si el release v<VERSION>
+# todavía no existe (o no tiene su .exe), construye el ejecutable y publica
+# el release automáticamente. Para sacar una versión nueva basta con subir
+# un cambio en VERSION — nadie tiene que crear tags ni releases a mano.
+
 on:
   push:
+    branches: ["claude/finance-tracking-app-plan-i671fh"]
     tags: ["v*"]
   release:
     types: [published]
@@ -16,38 +22,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Determinar versión
+        id: ver
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ("${{ github.event_name }}" -eq "release") {
+            $tag = "${{ github.event.release.tag_name }}"
+          } elseif ("${{ github.ref }}".StartsWith("refs/tags/")) {
+            $tag = "${{ github.ref_name }}"
+          } else {
+            $tag = "v" + (Get-Content VERSION -Raw).Trim()
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          $assets = gh release view $tag --json assets --jq '.assets[].name' 2>$null
+          if ($LASTEXITCODE -eq 0 -and $assets -match "MisFinanzas-windows.zip") {
+            Write-Host "El release $tag ya tiene su .exe; no hay nada que hacer."
+            "skip=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "skip=false" >> $env:GITHUB_OUTPUT
+          }
+
       - uses: actions/setup-python@v5
+        if: steps.ver.outputs.skip == 'false'
         with:
           python-version: "3.12"
 
       - name: Instalar dependencias
+        if: steps.ver.outputs.skip == 'false'
         run: pip install -r requirements.txt pyinstaller
 
       - name: Construir ejecutable
+        if: steps.ver.outputs.skip == 'false'
         run: pyinstaller --noconfirm --clean MisFinanzas.spec
 
       - name: Comprimir
+        if: steps.ver.outputs.skip == 'false'
         run: Compress-Archive -Path dist/MisFinanzas -DestinationPath MisFinanzas-windows.zip
 
-      - name: Subir artefacto (ejecución manual)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: MisFinanzas-windows
-          path: MisFinanzas-windows.zip
-
-      - name: Publicar en el release
-        if: github.event_name != 'workflow_dispatch'
+      - name: Publicar release con el .exe
+        if: steps.ver.outputs.skip == 'false'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref_name }}
+          TAG: ${{ steps.ver.outputs.tag }}
         run: |
           gh release view $env:TAG *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release upload $env:TAG MisFinanzas-windows.zip --clobber
           } else {
             gh release create $env:TAG MisFinanzas-windows.zip `
+              --target $env:GITHUB_SHA `
               --title "Mis Finanzas $env:TAG" `
               --notes "Descarga MisFinanzas-windows.zip, descomprímelo y haz doble clic en MisFinanzas.exe. Tus datos quedan en la carpeta MisFinanzas de tu usuario, así que actualizar de versión no los toca."
           }

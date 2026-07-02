@@ -25,6 +25,13 @@ nueva) sin perder nada.
 > («aplicación no reconocida») porque el ejecutable no está firmado. Haz clic en
 > «Más información» → «Ejecutar de todas formas».
 
+### Cómo se publica una versión nueva (automático)
+
+El número de versión vive en el archivo `VERSION`. Cuando se sube un cambio
+con un número nuevo (ej. `1.2.0`), GitHub Actions construye el `.exe` y publica
+el release `v1.2.0` solo, con el ZIP adjunto. No hay que crear tags ni releases
+a mano.
+
 ## Opción manual: correr con Python
 
 ### Requisitos
