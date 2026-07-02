@@ -33,27 +33,27 @@ def puerto_libre():
 
 
 def buscar_navegador():
-    """Ruta de Edge o Chrome para abrir la app en ventana propia."""
+    """Ruta del navegador para la ventana de la app: Chrome primero, luego Edge."""
     if os.environ.get("MISFINANZAS_BROWSER"):
         return os.environ["MISFINANZAS_BROWSER"]
     candidatos = [
-        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
         os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
         os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
         os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
     ]
     for c in candidatos:
         if c and os.path.exists(c):
             return c
-    for nombre in ("msedge", "google-chrome", "chromium", "chromium-browser"):
+    for nombre in ("google-chrome", "chromium", "chromium-browser", "msedge"):
         ruta = shutil.which(nombre)
         if ruta:
             return ruta
     return None
 
 
-def esperar_servidor(url, segundos=60):
+def esperar_servidor(url, segundos=120):
     for _ in range(segundos * 4):
         try:
             urlopen(url, timeout=1)
@@ -104,17 +104,17 @@ def ventana_app(url, data_dir):
 
 
 if __name__ == "__main__":
-    # En modo ventana (sin consola) no existen stdout/stderr reales y
-    # Streamlit los necesita para sus mensajes.
-    if sys.stdout is None:
-        sys.stdout = open(os.devnull, "w")
-    if sys.stderr is None:
-        sys.stderr = open(os.devnull, "w")
-
     data_dir = Path.home() / "MisFinanzas"
     data_dir.mkdir(exist_ok=True)
+
     if getattr(sys, "frozen", False):
         os.environ.setdefault("FINANZAS_DB", str(data_dir / "finanzas.db"))
+        # En modo ventana (sin consola) los streams no existen o no son
+        # confiables, y Streamlit los necesita para sus mensajes. Todo va
+        # a un log que además sirve para diagnosticar problemas.
+        log = open(data_dir / "launcher.log", "w", buffering=1, encoding="utf-8", errors="replace")
+        sys.stdout = log
+        sys.stderr = log
 
     # Sin este archivo, Streamlit pide un email por consola la primera vez
     # y deja la app colgada esperando una respuesta.
@@ -131,16 +131,25 @@ if __name__ == "__main__":
 
     threading.Thread(target=ventana_app, args=(url, data_dir), daemon=True).start()
 
-    from streamlit.web import cli as stcli
+    try:
+        from streamlit.web import cli as stcli
 
-    sys.argv = [
-        "streamlit", "run", str(base_dir() / "app.py"),
-        "--global.developmentMode=false",
-        "--server.headless=true",
-        "--server.fileWatcherType=none",
-        # Solo este PC puede abrir la app; nadie más en la red la ve.
-        "--server.address=localhost",
-        f"--server.port={puerto}",
-        "--browser.gatherUsageStats=false",
-    ] + sys.argv[1:]
-    sys.exit(stcli.main())
+        sys.argv = [
+            "streamlit", "run", str(base_dir() / "app.py"),
+            "--global.developmentMode=false",
+            "--server.headless=true",
+            "--server.fileWatcherType=none",
+            # Solo este PC puede abrir la app; nadie más en la red la ve.
+            "--server.address=localhost",
+            f"--server.port={puerto}",
+            "--browser.gatherUsageStats=false",
+        ] + sys.argv[1:]
+        sys.exit(stcli.main())
+    except SystemExit:
+        raise
+    except BaseException:
+        import traceback
+
+        print("El servidor de la app se cayó con este error:", file=sys.stderr)
+        traceback.print_exc()
+        raise
