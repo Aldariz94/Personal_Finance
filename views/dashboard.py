@@ -5,7 +5,10 @@ import pandas as pd
 import streamlit as st
 
 import db
-from utils import CHART_COLOR, MESES, fmt, installment_number, last_installment_month, month_label
+from utils import (
+    CHART_COLOR, LABEL_COLOR, MESES, fmt,
+    installment_number, last_installment_month, month_label,
+)
 
 st.title("📊 Dashboard")
 
@@ -49,32 +52,32 @@ te_queda = ingresos_mes - total_gastos - ahorro_mes
 # --- KPIs -------------------------------------------------------------------
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Ingresos del mes", fmt(ingresos_mes))
-c2.metric("Gastos del mes", fmt(total_gastos))
+c1.metric("💵 Ingresos del mes", fmt(ingresos_mes), border=True)
+c2.metric("🧾 Gastos del mes", fmt(total_gastos), border=True)
 c3.metric(
-    "Ahorro del mes",
+    "🏦 Ahorro del mes",
     fmt(ahorro_mes),
     delta="retiraste de tus ahorros" if ahorro_mes < 0 else None,
     delta_color="off",
     help="Depósitos menos retiros de tus ahorros en el mes.",
+    border=True,
 )
 c4.metric(
-    "Te queda",
+    "✨ Te queda",
     fmt(te_queda),
     delta=f"{te_queda / ingresos_mes:.0%} de tus ingresos" if ingresos_mes else None,
     delta_color="normal" if te_queda >= 0 else "inverse",
+    border=True,
 )
 
 if te_queda < 0:
     st.error("Este mes gastas más de lo que ingresa.")
 
-st.divider()
-
 # --- Desglose por categoría --------------------------------------------------
 
 col_izq, col_der = st.columns(2)
 
-with col_izq:
+with col_izq.container(border=True):
     st.subheader("Gasto por categoría")
     por_cat = pd.concat(
         [
@@ -106,7 +109,7 @@ with col_izq:
                 ],
             )
         )
-        etiquetas = barras.mark_text(align="left", dx=6, color="#C3C2B7").encode(
+        etiquetas = barras.mark_text(align="left", dx=6, color=LABEL_COLOR).encode(
             text="etiqueta:N"
         )
         st.altair_chart(
@@ -116,7 +119,7 @@ with col_izq:
             use_container_width=True,
         )
 
-with col_der:
+with col_der.container(border=True):
     st.subheader("Cuotas activas este mes")
     if cuotas_mes.empty:
         st.caption("No tienes cuotas que pagar este mes.")

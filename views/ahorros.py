@@ -13,7 +13,7 @@ cuentas = db.savings_accounts_df()
 # --- Resumen de cuentas -------------------------------------------------------
 
 if not cuentas.empty:
-    st.metric("Total ahorrado", fmt(cuentas["balance"].sum()))
+    st.metric("Total ahorrado", fmt(cuentas["balance"].sum()), border=True)
     tabla = pd.DataFrame(
         {
             "Nombre": cuentas["name"],

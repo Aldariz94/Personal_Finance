@@ -140,6 +140,14 @@ def incomes_df():
         )
 
 
+def update_income(income_id, date, amount, note=""):
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE incomes SET date = ?, amount = ?, note = ? WHERE id = ?",
+            (date.isoformat(), amount, note.strip(), income_id),
+        )
+
+
 def delete_income(income_id):
     with get_conn() as conn:
         conn.execute("DELETE FROM incomes WHERE id = ?", (income_id,))
@@ -177,6 +185,15 @@ def expenses_df():
             ORDER BY e.date DESC, e.id DESC
             """,
             conn,
+        )
+
+
+def update_expense(expense_id, name, category_name, amount, date):
+    cat_id = get_or_create_category(category_name)
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE expenses SET name = ?, category_id = ?, amount = ?, date = ? WHERE id = ?",
+            (name.strip(), cat_id, amount, date.isoformat(), expense_id),
         )
 
 
@@ -221,6 +238,21 @@ def purchases_df():
             ORDER BY p.date DESC, p.id DESC
             """,
             conn,
+        )
+
+
+def update_purchase(purchase_id, merchant, category_name, total, installments, installment_value, date):
+    cat_id = get_or_create_category(category_name)
+    with get_conn() as conn:
+        conn.execute(
+            """
+            UPDATE purchases
+            SET merchant = ?, category_id = ?, total_amount = ?,
+                installments = ?, installment_value = ?, date = ?
+            WHERE id = ?
+            """,
+            (merchant.strip(), cat_id, total, installments, installment_value,
+             date.isoformat(), purchase_id),
         )
 
 

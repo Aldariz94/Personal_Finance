@@ -8,7 +8,9 @@ MESES = [
 ]
 
 # Un solo tono para las barras del dashboard (validado sobre superficie oscura)
-CHART_COLOR = "#3987E5"
+CHART_COLOR = "#4C8BF5"
+# Gris azulado para las etiquetas de valor junto a las barras
+LABEL_COLOR = "#AEB9CE"
 
 
 def fmt(amount):
