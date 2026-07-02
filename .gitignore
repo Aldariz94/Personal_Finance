@@ -1,0 +1,7 @@
+# Base de datos personal — nunca subir al repositorio
+finanzas.db
+
+__pycache__/
+*.pyc
+.venv/
+venv/
