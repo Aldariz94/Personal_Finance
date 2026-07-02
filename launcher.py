@@ -39,6 +39,8 @@ if __name__ == "__main__":
         "--global.developmentMode=false",
         "--server.headless=false",
         "--server.fileWatcherType=none",
+        # Solo este PC puede abrir la app; nadie más en la red la ve.
+        "--server.address=localhost",
         "--browser.gatherUsageStats=false",
     ] + sys.argv[1:]
     sys.exit(stcli.main())
