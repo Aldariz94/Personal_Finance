@@ -42,6 +42,9 @@ vuelve a la terminal y presiona `Ctrl+C`.
   escribe para filtrar o elige de la lista.
 - **Historial**: todas tus compras, gastos e ingresos, con filtros por nombre y
   categoría, y el estado de cada compra en cuotas (cuántas van, cuándo termina).
+- **Ahorros**: crea ahorros con nombre y banco (ej. «Vacaciones — Banco Estado»),
+  deposita y retira cuando lo necesites. Lo que depositas en el mes se descuenta
+  de «Te queda»; lo que retiras vuelve a estar disponible.
 
 ## Respaldo
 

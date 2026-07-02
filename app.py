@@ -9,6 +9,7 @@ init_db()
 pages = [
     st.Page("views/dashboard.py", title="Dashboard", icon="📊", default=True),
     st.Page("views/agregar.py", title="Agregar", icon="➕"),
+    st.Page("views/ahorros.py", title="Ahorros", icon="🏦"),
     st.Page("views/historial.py", title="Historial", icon="📜"),
     st.Page("views/categorias.py", title="Categorías", icon="🏷️"),
 ]

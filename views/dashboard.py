@@ -33,14 +33,29 @@ purchases["cuota_n"] = purchases.apply(
 cuotas_mes = purchases[purchases["cuota_n"].notna()].copy()
 
 total_gastos = gastos_mes["amount"].sum() + cuotas_mes["installment_value"].sum()
-te_queda = ingresos_mes - total_gastos
+
+movs = db.savings_movements_df()
+movs_mes = movs[movs["date"].str.startswith(ym)]
+ahorro_mes = (
+    movs_mes[movs_mes["kind"] == "deposito"]["amount"].sum()
+    - movs_mes[movs_mes["kind"] == "retiro"]["amount"].sum()
+)
+
+te_queda = ingresos_mes - total_gastos - ahorro_mes
 
 # --- KPIs -------------------------------------------------------------------
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 c1.metric("Ingresos del mes", fmt(ingresos_mes))
 c2.metric("Gastos del mes", fmt(total_gastos))
 c3.metric(
+    "Ahorro del mes",
+    fmt(ahorro_mes),
+    delta="retiraste de tus ahorros" if ahorro_mes < 0 else None,
+    delta_color="off",
+    help="Depósitos menos retiros de tus ahorros en el mes.",
+)
+c4.metric(
     "Te queda",
     fmt(te_queda),
     delta=f"{te_queda / ingresos_mes:.0%} de tus ingresos" if ingresos_mes else None,

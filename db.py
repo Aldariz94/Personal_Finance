@@ -49,6 +49,20 @@ def init_db():
                 installment_value INTEGER NOT NULL,
                 date              TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS savings_accounts (
+                id   INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                bank TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS savings_movements (
+                id         INTEGER PRIMARY KEY,
+                account_id INTEGER NOT NULL REFERENCES savings_accounts(id) ON DELETE CASCADE,
+                date       TEXT NOT NULL,
+                amount     INTEGER NOT NULL,
+                kind       TEXT NOT NULL CHECK (kind IN ('deposito', 'retiro'))
+            );
             """
         )
 
@@ -213,3 +227,76 @@ def purchases_df():
 def delete_purchase(purchase_id):
     with get_conn() as conn:
         conn.execute("DELETE FROM purchases WHERE id = ?", (purchase_id,))
+
+
+# --- Ahorros ----------------------------------------------------------------
+
+
+def add_savings_account(name, bank):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO savings_accounts (name, bank) VALUES (?, ?)",
+            (name.strip(), bank.strip()),
+        )
+
+
+def savings_accounts_df():
+    """Cuentas de ahorro con su saldo actual (depósitos − retiros)."""
+    with get_conn() as conn:
+        return pd.read_sql_query(
+            """
+            SELECT a.id, a.name, a.bank,
+                   COALESCE(SUM(CASE m.kind WHEN 'deposito' THEN m.amount
+                                            ELSE -m.amount END), 0) AS balance
+            FROM savings_accounts a
+            LEFT JOIN savings_movements m ON m.account_id = a.id
+            GROUP BY a.id
+            ORDER BY a.name COLLATE NOCASE
+            """,
+            conn,
+        )
+
+
+def delete_savings_account(account_id):
+    """Elimina la cuenta y todos sus movimientos."""
+    with get_conn() as conn:
+        conn.execute("DELETE FROM savings_accounts WHERE id = ?", (account_id,))
+
+
+def savings_balance(account_id):
+    with get_conn() as conn:
+        return conn.execute(
+            """
+            SELECT COALESCE(SUM(CASE kind WHEN 'deposito' THEN amount
+                                          ELSE -amount END), 0)
+            FROM savings_movements WHERE account_id = ?
+            """,
+            (account_id,),
+        ).fetchone()[0]
+
+
+def add_savings_movement(account_id, date, amount, kind):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO savings_movements (account_id, date, amount, kind) VALUES (?, ?, ?, ?)",
+            (account_id, date.isoformat(), amount, kind),
+        )
+
+
+def savings_movements_df():
+    with get_conn() as conn:
+        return pd.read_sql_query(
+            """
+            SELECT m.id, m.date, m.amount, m.kind,
+                   a.name AS cuenta, a.bank AS banco
+            FROM savings_movements m
+            JOIN savings_accounts a ON a.id = m.account_id
+            ORDER BY m.date DESC, m.id DESC
+            """,
+            conn,
+        )
+
+
+def delete_savings_movement(movement_id):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM savings_movements WHERE id = ?", (movement_id,))
