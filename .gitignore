@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Artefactos de PyInstaller
+build/
+dist/

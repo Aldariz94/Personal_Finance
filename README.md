@@ -6,13 +6,34 @@ cuotas y un dashboard que te dice cuánto te queda a fin de mes.
 Todo corre **100% en tu computador**: no hay hosting, no hay cuentas, no hay
 internet de por medio. Tus datos viven en un solo archivo (`finanzas.db`).
 
-## Requisitos
+## Opción fácil: descargar el .exe (recomendado)
+
+Cada versión publica su ejecutable en
+[Releases](https://github.com/Aldariz94/Personal_Finance/releases):
+
+1. Descarga `MisFinanzas-windows.zip` de la última versión.
+2. Descomprímelo donde quieras.
+3. Doble clic en `MisFinanzas.exe` — se abre una ventana negra (el servidor,
+   no la cierres mientras usas la app) y la app aparece en tu navegador.
+4. Para salir, cierra la ventana negra.
+
+Con el .exe tus datos se guardan en `C:\Users\<tu usuario>\MisFinanzas\finanzas.db`,
+así que puedes actualizar de versión (borrar la carpeta vieja y descomprimir la
+nueva) sin perder nada.
+
+> Nota: la primera vez Windows puede mostrar la advertencia de SmartScreen
+> («aplicación no reconocida») porque el ejecutable no está firmado. Haz clic en
+> «Más información» → «Ejecutar de todas formas».
+
+## Opción manual: correr con Python
+
+### Requisitos
 
 - Windows 10/11 (también funciona en Mac/Linux)
 - Python 3.10 o superior — descárgalo de [python.org](https://www.python.org/downloads/)
   (al instalar, marca la casilla **"Add Python to PATH"**)
 
-## Instalación (una sola vez)
+### Instalación (una sola vez)
 
 Abre una terminal (PowerShell) en esta carpeta y ejecuta:
 
@@ -20,7 +41,7 @@ Abre una terminal (PowerShell) en esta carpeta y ejecuta:
 pip install -r requirements.txt
 ```
 
-## Cómo usarla
+### Cómo usarla
 
 ```
 streamlit run app.py

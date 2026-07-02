@@ -27,9 +27,12 @@ expenses = db.expenses_df()
 gastos_mes = expenses[expenses["date"].str.startswith(ym)]
 
 purchases = db.purchases_df()
-purchases["cuota_n"] = purchases.apply(
-    lambda p: installment_number(p["date"], p["installments"], anio, mes), axis=1
-)
+if purchases.empty:
+    purchases["cuota_n"] = pd.Series(dtype="float")
+else:
+    purchases["cuota_n"] = purchases.apply(
+        lambda p: installment_number(p["date"], p["installments"], anio, mes), axis=1
+    )
 cuotas_mes = purchases[purchases["cuota_n"].notna()].copy()
 
 total_gastos = gastos_mes["amount"].sum() + cuotas_mes["installment_value"].sum()
