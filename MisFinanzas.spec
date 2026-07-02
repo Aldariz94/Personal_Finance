@@ -32,7 +32,7 @@ exe = EXE(
     a.scripts,
     exclude_binaries=True,
     name="MisFinanzas",
-    console=True,
+    console=False,
 )
 
 coll = COLLECT(

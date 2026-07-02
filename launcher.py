@@ -1,15 +1,23 @@
 """Punto de entrada para la versión empaquetada (.exe).
 
-Arranca el servidor de Streamlit y abre la app en el navegador.
+Arranca el servidor de Streamlit en segundo plano y abre la app en una
+ventana propia (modo app de Edge/Chrome, sin barra de direcciones).
+Al cerrar esa ventana, el servidor se apaga solo y el proceso termina:
+abrir y cerrar funciona como cualquier app normal.
+
 Los datos se guardan en la carpeta del usuario (~/MisFinanzas/finanzas.db)
 para que sobrevivan a las actualizaciones de la app.
 """
 
 import os
+import shutil
+import socket
+import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
-
-from streamlit.web import cli as stcli
+from urllib.request import urlopen
 
 
 def base_dir():
@@ -18,10 +26,94 @@ def base_dir():
     return Path(__file__).parent
 
 
+def puerto_libre():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def buscar_navegador():
+    """Ruta de Edge o Chrome para abrir la app en ventana propia."""
+    if os.environ.get("MISFINANZAS_BROWSER"):
+        return os.environ["MISFINANZAS_BROWSER"]
+    candidatos = [
+        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+    ]
+    for c in candidatos:
+        if c and os.path.exists(c):
+            return c
+    for nombre in ("msedge", "google-chrome", "chromium", "chromium-browser"):
+        ruta = shutil.which(nombre)
+        if ruta:
+            return ruta
+    return None
+
+
+def esperar_servidor(url, segundos=60):
+    for _ in range(segundos * 4):
+        try:
+            urlopen(url, timeout=1)
+            return True
+        except Exception:
+            time.sleep(0.25)
+    return False
+
+
+def ventana_app(url, data_dir):
+    """Espera el servidor, abre la ventana de la app y, al cerrarla, apaga todo."""
+    if not esperar_servidor(url):
+        os._exit(1)
+
+    navegador = buscar_navegador()
+    if navegador:
+        # Un perfil propio obliga a que la ventana sea un proceso dedicado:
+        # así sabemos exactamente cuándo el usuario la cierra.
+        perfil = data_dir / "ventana"
+        perfil.mkdir(parents=True, exist_ok=True)
+        subprocess.run([
+            navegador,
+            f"--app={url}",
+            f"--user-data-dir={perfil}",
+            "--no-first-run",
+            "--no-default-browser-check",
+        ])
+        os._exit(0)
+
+    # Sin Edge/Chrome: pestaña normal + ventanita para salir de la app.
+    import webbrowser
+    webbrowser.open(url)
+    try:
+        import tkinter as tk
+
+        raiz = tk.Tk()
+        raiz.title("Mis Finanzas")
+        tk.Label(
+            raiz,
+            text="Mis Finanzas está abierta en tu navegador.\n\n"
+                 "Cierra esta ventana cuando quieras salir de la app.",
+            padx=30, pady=30,
+        ).pack()
+        raiz.mainloop()
+    except Exception:
+        input("Presiona Enter para salir de Mis Finanzas...")
+    os._exit(0)
+
+
 if __name__ == "__main__":
+    # En modo ventana (sin consola) no existen stdout/stderr reales y
+    # Streamlit los necesita para sus mensajes.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w")
+
+    data_dir = Path.home() / "MisFinanzas"
+    data_dir.mkdir(exist_ok=True)
     if getattr(sys, "frozen", False):
-        data_dir = Path.home() / "MisFinanzas"
-        data_dir.mkdir(exist_ok=True)
         os.environ.setdefault("FINANZAS_DB", str(data_dir / "finanzas.db"))
 
     # Sin este archivo, Streamlit pide un email por consola la primera vez
@@ -34,13 +126,21 @@ if __name__ == "__main__":
     # El cwd debe contener .streamlit/config.toml para que tome el tema oscuro
     os.chdir(base_dir())
 
+    puerto = puerto_libre()
+    url = f"http://localhost:{puerto}"
+
+    threading.Thread(target=ventana_app, args=(url, data_dir), daemon=True).start()
+
+    from streamlit.web import cli as stcli
+
     sys.argv = [
         "streamlit", "run", str(base_dir() / "app.py"),
         "--global.developmentMode=false",
-        "--server.headless=false",
+        "--server.headless=true",
         "--server.fileWatcherType=none",
         # Solo este PC puede abrir la app; nadie más en la red la ve.
         "--server.address=localhost",
+        f"--server.port={puerto}",
         "--browser.gatherUsageStats=false",
     ] + sys.argv[1:]
     sys.exit(stcli.main())

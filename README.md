@@ -13,9 +13,9 @@ Cada versión publica su ejecutable en
 
 1. Descarga `MisFinanzas-windows.zip` de la última versión.
 2. Descomprímelo donde quieras.
-3. Doble clic en `MisFinanzas.exe` — se abre una ventana negra (el servidor,
-   no la cierres mientras usas la app) y la app aparece en tu navegador.
-4. Para salir, cierra la ventana negra.
+3. Doble clic en `MisFinanzas.exe` — la app se abre en su propia ventana,
+   como cualquier programa.
+4. Para salir, simplemente cierra la ventana: todo se apaga solo.
 
 Con el .exe tus datos se guardan en `C:\Users\<tu usuario>\MisFinanzas\finanzas.db`,
 así que puedes actualizar de versión (borrar la carpeta vieja y descomprimir la
